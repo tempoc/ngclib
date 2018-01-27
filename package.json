@@ -1,0 +1,42 @@
+{
+  "name": "ngclib",
+  "version": "0.0.0",
+  "description": "Derive an Angular library from an Angular CLI project.",
+  "files": [
+    "src/",
+    "template/"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "ngclib": "bin/init.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tempoc/ngclib.git"
+  },
+  "keywords": [
+    "angular",
+    "cli",
+    "library"
+  ],
+  "author": "https://github.com/tempoc",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tempoc/ngclib/issues"
+  },
+  "homepage": "https://github.com/tempoc/ngclib#readme",
+  "dependencies": {
+    "chalk": "^2.3.0",
+    "gulp-inline-ng2-template": "^4.1.0",
+    "prompt": "^1.0.0",
+    "rollup": "^0.55.1",
+    "uglify-js": "^3.3.8",
+    "vinyl-fs": "^3.0.2",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "gulp-replace": "^0.6.1"
+  }
+}
