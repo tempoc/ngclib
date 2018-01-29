@@ -5,13 +5,17 @@ const vfs = require('vinyl-fs');
 const inlineNg2Template = require('gulp-inline-ng2-template');
 
 module.exports = function (src, dest) {
-    vfs
-        .src([`${src}/**/*.ts`])
-        .pipe(
-            inlineNg2Template({
-                base: `${src}`,
-                useRelativePaths: true
-            })
-        )
-        .pipe(vfs.dest(`${dest}`));
+    return new Promise((resolve, reject) => {
+        vfs
+            .src([`${src}/**/*.ts`])
+            .pipe(
+                inlineNg2Template({
+                    base: `${src}`,
+                    useRelativePaths: true
+                })
+            )
+            .pipe(vfs.dest(`${dest}`))
+            .on('end', () => resolve())
+            .on('error', _ => reject(_));
+    });
 };

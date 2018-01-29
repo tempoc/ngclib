@@ -4,7 +4,7 @@ const inlineAssets = require('./inlineAssets');
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 
 const chalk = require('chalk');
 const gulpReplace = require('gulp-replace');
@@ -20,7 +20,9 @@ const UTF_8 = 'utf-8';
 const DEFAULT_LIBNAME = process.cwd().replace(/^.*\//i, '');
 const CONFIG_FILE = 'ngclib.config.json';
 
-let config = { };
+let config = {
+    prefix: 'ngx'
+};
 
 prompt.message = 'Question...';
 prompt.delimiter = ' ';
@@ -48,15 +50,19 @@ function printSuccess(message) {
 function copyTemplate() {
     vfs
         .src(path.join(__dirname, '../template', '**'))
-        .pipe(gulpReplace('${libName}', config.libName))
+        .pipe(gulpReplace('ngx-libtemplate', config.libName))
         .pipe(gulpReplace('ngxLibtemplate', config.umdName))
         .pipe(vfs.dest('.'));
 }
 
 function moveSrcToTmp() {
-    vfs
-        .src('*.ts')
-        .pipe(vfs.dest('./tmp/'));
+    return new Promise((resolve, reject) => {
+        vfs
+            .src('*.ts')
+            .pipe(vfs.dest('./tmp/'))
+            .on('end', () => resolve())
+            .on('error', reject);
+    });
 }
 
 function printHelp() {
@@ -66,25 +72,15 @@ ngclib [init|build]
 }
 
 function ngc(configFile) {
-    mySpawnSync('node_modules/.bin/ngc', ['-p', configFile]);
+    return new Promise((resolve, reject) => {
+        mySpawn('node_modules/.bin/ngc', ['-p', configFile])
+            .on('close', () => resolve())
+            .on('error', reject);
+    });
 }
 
-function mySpawnSync(command, argArray) {
-    const child = spawnSync(command, argArray);
-
-    if (child.stdout && child.stdout.toString && child.stdout.toString()) {
-        console.log(child.stdout.toString());
-    }
-
-    if (child.stderr && child.stderr.toString && child.stderr.toString()) {
-        printError(child.stderr.toString());
-    }
-
-    if (child.error) {
-        throw child.error;
-    }
-
-    return child;
+function mySpawn(command, argArray) {
+    return spawn(command, argArray);
 }
 
 function printError(message) {
@@ -98,6 +94,9 @@ function askInitQuestions(cb) {
         properties: {
             libName: {
                 description: `What is the library name? (${DEFAULT_LIBNAME})`
+            },
+            prefix: {
+                description: `What is the prefix? (${config.prefix})`
             }
         }
     }, function (err, result) {
@@ -107,10 +106,9 @@ function askInitQuestions(cb) {
 
         config.libName = result.libName || DEFAULT_LIBNAME;
         config.umdName = config.libName.split('-').map((_, i) => i ? _[0].toUpperCase() + _.slice(1) : _).join('');
+        config.prefix = result.prefix || config.prefix;
 
-        fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, '  '));
-
-        cb();
+        fs.writeFile(CONFIG_FILE, defaultStringify(config), cb);
     });
 }
 
@@ -119,46 +117,74 @@ function readConfig() {
 }
 
 function generateLibraryModule() {
-    mySpawnSync('ng', ['g', 'module', `lib/${config.libName}`]);
+    mySpawn('ng', ['g', 'module', `lib/${config.libName}`]);
 }
 
-function myRollup(configFile, cb) {
-    const config = require(path.join(process.cwd(), configFile));
+function myRollup(configFile) {
+    return new Promise((resolve, reject) => {
+        const config = require(path.join(process.cwd(), configFile));
 
-    printSuccess(`Compiling ${config.input} into ${config.output.file}, according to ${configFile}.`);
+        printSuccess(`Compiling ${config.input} into ${config.output.file}, according to ${configFile}.`);
 
-    rollup
-        .rollup(config)
-        .then(
-            _ => {
-                _.write(config.output).then(() => {
-                    if (cb) {
-                        cb();
-                    }
-                }, _ => printError(_));
-            },
-            _ => printError(_)
-        );
+        rollup
+            .rollup(config)
+            .then(
+                _ => {
+                    _.write(config.output).then(() => {
+                        resolve();
+                    }, reject);
+                },
+                reject
+            );
+    });
 }
 
 function amendPackageJson() {
-    const PACKAGE_JSON_FILE = 'package.json';
+    amendJsonFile('package.json', contents => {
+        contents.main = `./bundles/${config.libName}.umd.js`;
+        contents.module = `./esm5/${config.libName}.js`;
+        contents.es2015 = `./esm2015/${config.libName}.js`;
+        contents.typings = `./${config.libName}.d.ts`;
 
-    const contents = JSON.parse(fs.readFileSync(PACKAGE_JSON_FILE, UTF_8));
-    contents.main = `./bundles/${config.libName}.umd.js`;
-    contents.module = `./esm5/${config.libName}.js`;
-    contents.es2015 = `./esm2015/${config.libName}.js`;
-    contents.typings = `./${config.libName}.d.ts`;
-
-    fs.writeFileSync(PACKAGE_JSON_FILE, JSON.stringify(contents, null, '  '));
+        return contents;
+    });
 }
 
 function printKeyValuePair(key, value) {
     console.log(chalk.blue(`${key}: `) + chalk.underline(value));
 }
 
+function defaultStringify(obj) {
+    return JSON.stringify(obj, null, '  ');
+}
+
+function amendJsonFile(file, action) {
+    fs.readFile(file, UTF_8, (err, data) => {
+        if (err) {
+            throw err;
+        }
+
+        let contents = JSON.parse(data);
+
+        contents = action(contents);
+
+        fs.writeFile(file, defaultStringify(contents));
+    });
+}
+
 function replacePrefix() {
-    console.log(chalk.red('Not yet implemented: replacePrefix()'));
+    amendJsonFile('.angular-cli.json', contents => {
+        contents.apps[0].prefix = config.prefix;
+
+        return contents;
+    });
+
+    amendJsonFile('tslint.json', contents => {
+        contents.rules['directive-selector'][2] = config.prefix;
+        contents.rules['component-selector'][2] = config.prefix;
+
+        return contents;
+    });
 }
 
 function init() {
@@ -176,45 +202,66 @@ Angular CLI project has been decorated to produce a library.
         printKeyValuePair('Output folder', OUT_FOLDER);
         printKeyValuePair('See what changed', 'git status');
         printKeyValuePair('Build library', process.argv[1].replace(/^.*\//, '') + ' build');
+        printKeyValuePair('Publish Library', `npm publish ${OUT_FOLDER}`);
     });
 }
 
 function myUglify() {
-    fs.writeFile(
-        `${OUT_FOLDER}bundles/${config.libName}.umd.min.js`,
-        uglify.minify(fs.readFileSync(`${OUT_FOLDER}bundles/${config.libName}.umd.js`, UTF_8))
-    );
+    return new Promise((resolve, reject) => {
+        try {
+            fs.readFile(`${OUT_FOLDER}bundles/${config.libName}.umd.js`, UTF_8, (err, data) => {
+                if (err) {
+                    reject(err);
+                }
+
+                fs.writeFile(
+                    `${OUT_FOLDER}bundles/${config.libName}.umd.min.js`,
+                    uglify.minify(data),
+                    resolve
+                );
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
 
 function copyAssets() {
-    vfs
-        .src([
-            'tmp/esm2015/*.d.ts',
-            'tmp/esm2015/src',
-            'tmp/esm2015/*.json',
-            'package.json',
-            'README.md',
-            'LICENSE.txt'
-        ], {
-            allowEmpty: true
-        })
-        .pipe(vfs.dest(OUT_FOLDER));
+    return new Promise((resolve, reject) => {
+        vfs
+            .src([
+                'tmp/esm2015/*.d.ts',
+                'tmp/esm2015/src',
+                'tmp/esm2015/*.json',
+                'package.json',
+                'README.md',
+                'LICENSE.txt'
+            ], {
+                allowEmpty: true
+            })
+            .pipe(vfs.dest(OUT_FOLDER))
+            .on('end', () => resolve())
+            .on('error', reject);
+    });
 }
 
 function build() {
     readConfig();
 
-    const src = './src';
-    const dest = './tmp/src';
+    moveSrcToTmp()
+        .then(() => inlineAssets('./src', './tmp/src'))
+        .then(() => {
+            const esm2015 = ngc('tsconfig-esm2015.json')
+                .then(() => myRollup('rollup-esm2015.conf.js'))
+                .then(copyAssets);
 
-    moveSrcToTmp();
-    inlineAssets(src, dest);
-    ngc('tsconfig-esm2015.json');
-    myRollup('rollup-esm2015.conf.js');
-    ngc('tsconfig-esm5.json');
-    myRollup('rollup-esm5.conf.js');
-    myRollup('rollup-umd.conf.js', myUglify);
-    copyAssets();
+            const esm5 = ngc('tsconfig-esm5.json')
+                .then(() => myRollup('rollup-esm5.conf.js'))
+                .then(() => myRollup('rollup-umd.conf.js'))
+                .then(myUglify);
+
+            return Promise.all([esm2015, esm5]);
+        });
 }
 
 module.exports = function (args) {
