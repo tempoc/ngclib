@@ -3,6 +3,7 @@
   "version": "0.0.1-0",
   "description": "Derive an Angular library from an Angular CLI project.",
   "files": [
+    "bin/",
     "src/",
     "template/"
   ],
