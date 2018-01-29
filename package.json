@@ -1,6 +1,6 @@
 {
   "name": "ngclib",
-  "version": "0.0.1-0",
+  "version": "0.0.1-1",
   "description": "Derive an Angular library from an Angular CLI project.",
   "files": [
     "bin/",
