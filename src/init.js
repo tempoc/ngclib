@@ -13,7 +13,6 @@ const rollup = require('rollup');
 const uglify = require('uglify-js');
 const vfs = require('vinyl-fs');
 
-const OUT_FOLDER = 'ngclib-out/';
 const GITIGNORE = '.gitignore';
 const UTF_8 = 'utf-8';
 
@@ -21,7 +20,8 @@ const DEFAULT_LIBNAME = process.cwd().replace(/^.*\//i, '');
 const CONFIG_FILE = 'ngclib.config.json';
 
 let config = {
-    prefix: 'ngx'
+    prefix: 'ngx',
+    outFolder: 'ngclib-out'
 };
 
 prompt.message = 'Question...';
@@ -36,11 +36,11 @@ function gitignore() {
         GITIGNORE,
         `
 # ngclib output dir
-${OUT_FOLDER}
+${config.outFolder}/
 `
     );
 
-    printSuccess(`Added ${OUT_FOLDER} to ${GITIGNORE}.`);
+    printSuccess(`Added ${config.outFolder}/ to ${GITIGNORE}.`);
 }
 
 function printSuccess(message) {
@@ -50,8 +50,9 @@ function printSuccess(message) {
 function copyTemplate() {
     vfs
         .src(path.join(__dirname, '../template', '**'))
-        .pipe(gulpReplace('ngx-libtemplate', config.libName))
-        .pipe(gulpReplace('ngxLibtemplate', config.umdName))
+        .pipe(gulpReplace('${libName}', config.libName))
+        .pipe(gulpReplace('${umdName}', config.umdName))
+        .pipe(gulpReplace('${outFolder}', config.outFolder))
         .pipe(vfs.dest('.'));
 }
 
@@ -97,6 +98,9 @@ function askInitQuestions(cb) {
             },
             prefix: {
                 description: `What is the prefix? (${config.prefix})`
+            },
+            outFolder: {
+                description: `What is the library build output folder? (${config.outFolder})`
             }
         }
     }, function (err, result) {
@@ -107,6 +111,7 @@ function askInitQuestions(cb) {
         config.libName = result.libName || DEFAULT_LIBNAME;
         config.umdName = config.libName.split('-').map((_, i) => i ? _[0].toUpperCase() + _.slice(1) : _).join('');
         config.prefix = result.prefix || config.prefix;
+        config.outFolder = result.outFolder || config.outFolder;
 
         fs.writeFile(CONFIG_FILE, defaultStringify(config), cb);
     });
@@ -199,23 +204,23 @@ Angular CLI project has been decorated to produce a library.
                 `);
         printKeyValuePair('Module Name', config.libName);
         printKeyValuePair('UMD Name', config.umdName);
-        printKeyValuePair('Output folder', OUT_FOLDER);
+        printKeyValuePair('Output folder', config.outFolder);
         printKeyValuePair('See what changed', 'git status');
         printKeyValuePair('Build library', process.argv[1].replace(/^.*\//, '') + ' build');
-        printKeyValuePair('Publish Library', `npm publish ${OUT_FOLDER}`);
+        printKeyValuePair('Publish Library', `npm publish ${config.outFolder}`);
     });
 }
 
 function myUglify() {
     return new Promise((resolve, reject) => {
         try {
-            fs.readFile(`${OUT_FOLDER}bundles/${config.libName}.umd.js`, UTF_8, (err, data) => {
+            fs.readFile(`${config.outFolder}/bundles/${config.libName}.umd.js`, UTF_8, (err, data) => {
                 if (err) {
                     reject(err);
                 }
 
                 fs.writeFile(
-                    `${OUT_FOLDER}bundles/${config.libName}.umd.min.js`,
+                    `${config.outFolder}/bundles/${config.libName}.umd.min.js`,
                     uglify.minify(data),
                     resolve
                 );
@@ -239,7 +244,7 @@ function copyAssets() {
             ], {
                 allowEmpty: true
             })
-            .pipe(vfs.dest(OUT_FOLDER))
+            .pipe(vfs.dest(`${config.outFolder}/`))
             .on('end', () => resolve())
             .on('error', reject);
     });

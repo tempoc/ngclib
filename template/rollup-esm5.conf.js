@@ -1,7 +1,7 @@
 module.exports = {
-    input: 'tmp/esm5/ngx-libtemplate.js',
+    input: 'tmp/esm5/${libName}.js',
     output: {
-        file: 'ngclib-out/esm5/ngx-libtemplate.js',
+        file: '${outFolder}/esm5/${libName}.js',
         format: 'es'
     },
     external: [

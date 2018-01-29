@@ -1,8 +1,8 @@
 module.exports = {
-    input: 'tmp/esm5/ngx-libtemplate.js',
+    input: 'tmp/esm5/${libName}.js',
     output: {
-        name: 'ngxLibtemplate',
-        file: 'ngclib-out/bundles/ngx-libtemplate.umd.js',
+        name: '${umdName}',
+        file: '${outFolder}/bundles/${libName}.umd.js',
         format: 'umd',
         globals: {
             // Angular dependencies

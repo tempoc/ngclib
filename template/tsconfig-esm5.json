@@ -9,7 +9,7 @@
         "annotateForClosureCompiler": true,
         "strictMetadataEmit": true,
         "skipTemplateCodegen": true,
-        "flatModuleOutFile": "ngx-libtemplate.js",
-        "flatModuleId": "ngx-libtemplate"
+        "flatModuleOutFile": "${libName}.js",
+        "flatModuleId": "${libName}"
     }
 }
