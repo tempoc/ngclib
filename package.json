@@ -30,13 +30,14 @@
   "dependencies": {
     "chalk": "^2.3.0",
     "gulp-inline-ng2-template": "^4.1.0",
+    "gulp-replace": "^0.6.1",
     "prompt": "^1.0.0",
     "rollup": "^0.55.1",
     "uglify-js": "^3.3.8",
     "vinyl-fs": "^3.0.2",
     "yargs": "^11.0.0"
   },
-  "devDependencies": {
-    "gulp-replace": "^0.6.1"
+  "peerDependencies": {
+    "@angular/cli": "^1.5.2"
   }
 }
