@@ -150,6 +150,8 @@ function amendPackageJson() {
         contents.module = `./esm5/${config.libName}.js`;
         contents.es2015 = `./esm2015/${config.libName}.js`;
         contents.typings = `./${config.libName}.d.ts`;
+        contents.scripts = contents.scripts || {};
+        contents.scripts['ngclib:build'] = 'ngclib build';
 
         return contents;
     });
@@ -206,7 +208,7 @@ Angular CLI project has been decorated to produce a library.
         printKeyValuePair('UMD Name', config.umdName);
         printKeyValuePair('Output folder', config.outFolder);
         printKeyValuePair('See what changed', 'git status');
-        printKeyValuePair('Build library', process.argv[1].replace(/^.*\//, '') + ' build');
+        printKeyValuePair('Build library', 'npm run ngclib:build');
         printKeyValuePair('Publish Library', `npm publish ${config.outFolder}`);
     });
 }
