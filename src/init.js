@@ -146,8 +146,14 @@ function amendPackageJson() {
         contents.module = `./esm5/${config.libName}.js`;
         contents.es2015 = `./esm2015/${config.libName}.js`;
         contents.typings = `./${config.libName}.d.ts`;
+
         contents.scripts = contents.scripts || {};
         contents.scripts['ngclib:build'] = 'ngclib build';
+
+        contents.peerDependencies = contents.peerDependencies || {};
+        contents.peerDependencies['@angular/core'] = '^5.0.0';
+        contents.peerDependencies['@angular/common'] = '^5.0.0';
+        contents.peerDependencies['rxjs'] = '^5.5.2';
 
         return contents;
     });
