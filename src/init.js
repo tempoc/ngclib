@@ -241,7 +241,7 @@ function copyAssets() {
         vfs
             .src([
                 'tmp/esm2015/*.d.ts',
-                'tmp/esm2015/src',
+                'tmp/esm2015/src/**',
                 'tmp/esm2015/*.json',
                 'package.json',
                 'README.md',
