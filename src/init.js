@@ -271,7 +271,8 @@ function build() {
                 .then(myUglify);
 
             return Promise.all([esm2015, esm5]);
-        });
+        })
+        .catch(printError);
 }
 
 module.exports = function (args) {
