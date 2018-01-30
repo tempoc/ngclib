@@ -74,9 +74,10 @@ ngclib [init|build]
 
 function ngc(configFile) {
     return new Promise((resolve, reject) => {
-        spawn('node_modules/.bin/ngc', ['-p', configFile])
-            .on('close', () => resolve())
-            .on('error', reject);
+        const ngc = spawn('node_modules/.bin/ngc', ['-p', configFile]);
+        ngc.on('close', () => resolve());
+
+        ngc.stderr.on('data', reject);
     });
 }
 
