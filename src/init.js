@@ -74,14 +74,10 @@ ngclib [init|build]
 
 function ngc(configFile) {
     return new Promise((resolve, reject) => {
-        mySpawn('node_modules/.bin/ngc', ['-p', configFile])
+        spawn('node_modules/.bin/ngc', ['-p', configFile])
             .on('close', () => resolve())
             .on('error', reject);
     });
-}
-
-function mySpawn(command, argArray) {
-    return spawn(command, argArray);
 }
 
 function printError(message) {
@@ -122,7 +118,7 @@ function readConfig() {
 }
 
 function generateLibraryModule() {
-    mySpawn('ng', ['g', 'module', `lib/${config.libName}`]);
+    spawn('ng', ['g', 'module', `lib/${config.libName}`]);
 }
 
 function myRollup(configFile) {
