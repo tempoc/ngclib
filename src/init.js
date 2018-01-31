@@ -236,12 +236,23 @@ function myUglify() {
     });
 }
 
+function copySrc() {
+    return new Promise((resolve, reject) => {
+        vfs
+            .src(['tmp/src/**/*'], {
+                allowEmpty: true
+            })
+            .pipe(vfs.dest(`${config.outFolder}/src`))
+            .on('end', () => resolve())
+            .on('error', reject);
+    });
+}
+
 function copyAssets() {
     return new Promise((resolve, reject) => {
         vfs
             .src([
                 'tmp/esm2015/*.d.ts',
-                'tmp/esm2015/src/**',
                 'tmp/esm2015/*.json',
                 'package.json',
                 'README.md',
@@ -263,7 +274,12 @@ function build() {
         .then(() => {
             const esm2015 = ngc('tsconfig-esm2015.json')
                 .then(() => myRollup('rollup-esm2015.conf.js'))
-                .then(copyAssets);
+                .then(() => {
+                    const copyAssetsPromise = copyAssets();
+                    const copySrcPromise = copySrc();
+
+                    return Promise.all([copyAssetsPromise, copySrcPromise]);
+                });
 
             const esm5 = ngc('tsconfig-esm5.json')
                 .then(() => myRollup('rollup-esm5.conf.js'))
