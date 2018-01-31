@@ -21,7 +21,8 @@ const CONFIG_FILE = 'ngclib.config.json';
 
 let config = {
     prefix: 'ngx',
-    outFolder: 'ngclib-out'
+    outFolder: 'ngclib-out',
+    tmpFolder: 'tmp'
 };
 
 prompt.message = 'Question...';
@@ -60,7 +61,7 @@ function moveSrcToTmp() {
     return new Promise((resolve, reject) => {
         vfs
             .src('*.ts')
-            .pipe(vfs.dest('./tmp/'))
+            .pipe(vfs.dest(`./${config.tmpFolder}/`))
             .on('end', () => resolve())
             .on('error', reject);
     });
@@ -98,6 +99,9 @@ function askInitQuestions(cb) {
             },
             outFolder: {
                 description: `What is the library build output folder? (${config.outFolder})`
+            },
+            tmpFolder: {
+                description: `What is the library build temp folder? (${config.tmpFolder})`
             }
         }
     }, function (err, result) {
@@ -109,6 +113,7 @@ function askInitQuestions(cb) {
         config.umdName = config.libName.split('-').map((_, i) => i ? _[0].toUpperCase() + _.slice(1) : _).join('');
         config.prefix = result.prefix || config.prefix;
         config.outFolder = result.outFolder || config.outFolder;
+        config.tmpFolder = result.tmpFolder || config.tmpFolder;
 
         fs.writeFile(CONFIG_FILE, defaultStringify(config), cb);
     });
@@ -149,7 +154,8 @@ function amendPackageJson() {
         contents.typings = `./${config.libName}.d.ts`;
 
         contents.scripts = contents.scripts || {};
-        contents.scripts['ngclib:build'] = 'ngclib build';
+        contents.scripts['ngclib:build'] = 'npm run ngclib:clean && ngclib build';
+        contents.scripts['ngclib:clean'] = `rm -rf ${config.tmpFolder}/ ${config.outFolder}/`;
 
         contents.peerDependencies = contents.peerDependencies || {};
         contents.peerDependencies['@angular/core'] = '^5.0.0';
@@ -239,7 +245,7 @@ function myUglify() {
 function copySrc() {
     return new Promise((resolve, reject) => {
         vfs
-            .src(['tmp/src/**/*'], {
+            .src([`${config.tmpFolder}/src/**/*`], {
                 allowEmpty: true
             })
             .pipe(vfs.dest(`${config.outFolder}/src`))
@@ -252,8 +258,8 @@ function copyAssets() {
     return new Promise((resolve, reject) => {
         vfs
             .src([
-                'tmp/esm2015/*.d.ts',
-                'tmp/esm2015/*.json',
+                `${config.tmpFolder}/esm2015/*.d.ts`,
+                `${config.tmpFolder}/esm2015/*.json`,
                 'package.json',
                 'README.md',
                 'LICENSE.txt'
@@ -270,7 +276,7 @@ function build() {
     readConfig();
 
     moveSrcToTmp()
-        .then(() => inlineAssets('./src', './tmp/src'))
+        .then(() => inlineAssets('./src', `./${config.tmpFolder}/src`))
         .then(() => {
             const esm2015 = ngc('tsconfig-esm2015.json')
                 .then(() => myRollup('rollup-esm2015.conf.js'))
